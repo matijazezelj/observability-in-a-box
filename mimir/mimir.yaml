@@ -1,0 +1,18 @@
+blocks_storage:
+  backend: s3
+  s3:
+    bucket_name: mimir-blocks
+    endpoint: minio:9000
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+
+ruler_storage:
+  backend: s3
+  s3:
+    bucket_name: mimir-ruler
+    endpoint: minio:9000
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+

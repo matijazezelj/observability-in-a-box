@@ -1,0 +1,145 @@
+services:
+
+  nats:
+    image: nats:latest   # Official, regularly updated[1]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats_data:/data
+
+  vector:
+    image: timberio/vector:0.48.0-alpine    # Latest as of June 2025[6]
+    command: ["--config", "/etc/vector/vector.toml"]
+    volumes:
+      - ./vector/vector.toml:/etc/vector/vector.toml
+    ports:
+      - "8686:8686"  # Vector API
+      - "9598:9598"  # Vector internal metrics
+    depends_on:
+      - nats
+      - loki
+
+  loki:
+    image: grafana/loki:latest              # Canonical repo, frequently updated[7][15]
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
+    environment:
+      MINIO_ACCESS_KEY_ID: minioadmin
+      MINIO_SECRET_ACCESS_KEY: minioadmin
+    volumes:
+      - ./loki/local-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    depends_on:
+      - minio
+
+  minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z # Latest stable release[16]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  grafana:
+    image: grafana/grafana-oss:latest      # OSS or Enterprise as needed[9][17]
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources/:/etc/grafana/provisioning/datasources/:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+      - mimir
+      - tempo
+      - prometheus
+
+  tempo:
+    image: grafana/tempo:latest            # Latest[10][18]
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
+
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.131.0 # July 2025 release[11][19]
+    command: ["--config=/etc/otelcol-config.yaml"]
+    volumes:
+      - ./opentelemetry/otelcol-config.yaml:/etc/otelcol-config.yaml
+
+  prometheus:
+    image: prom/prometheus:latest         # Latest OSS[12][20]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  mimir:
+    image: grafana/mimir:latest           # Latest tagged[21]
+    command: ["-config.file=/etc/mimir/mimir.yaml"]
+    volumes:
+      - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - mimir_data:/data
+    depends_on:
+      - minio
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb --ignore-existing myminio/mimir-blocks;
+      mc mb --ignore-existing myminio/mimir-ruler;
+      mc mb --ignore-existing myminio/tempo;
+      mc mb --ignore-existing myminio/loki;
+      mc mb --ignore-existing myminio/loki-chunks;
+      mc mb --ignore-existing myminio/loki-ruler;
+      exit 0;
+      "
+    networks:
+      - default
+
+  haproxy:
+    image: haproxy:latest
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - grafana
+      - loki
+      - prometheus
+      - tempo
+      - mimir
+      - vector
+      - opentelemetry-collector
+
+  alpine-debug:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+    tty: true
+    stdin_open: true
+    profiles: ["debug"]
+
+
+volumes:
+  nats_data:
+  loki_data:
+  minio_data:
+  prometheus_data:
+  tempo_data:
+  mimir_data:
+  grafana_data:
+
