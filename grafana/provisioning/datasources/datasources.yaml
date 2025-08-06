@@ -12,7 +12,11 @@ datasources:
   - name: Mimir
     type: prometheus
     access: proxy
-    url: http://mimir:9009
+    url: http://mimir:9009/prometheus
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "anonymous"
     version: 1
     editable: true
 

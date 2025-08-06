@@ -1,7 +1,6 @@
 services:
-
   nats:
-    image: nats:latest   # Official, regularly updated[1]
+    image: nats:latest # Official, regularly updated[1]
     ports:
       - "4222:4222"
       - "8222:8222"
@@ -9,19 +8,19 @@ services:
       - nats_data:/data
 
   vector:
-    image: timberio/vector:0.48.0-alpine    # Latest as of June 2025[6]
+    image: timberio/vector:0.48.0-alpine # Latest as of June 2025[6]
     command: ["--config", "/etc/vector/vector.toml"]
     volumes:
       - ./vector/vector.toml:/etc/vector/vector.toml
     ports:
-      - "8686:8686"  # Vector API
-      - "9598:9598"  # Vector internal metrics
+      - "8686:8686" # Vector API
+      - "9598:9598" # Vector internal metrics
     depends_on:
       - nats
       - loki
 
   loki:
-    image: grafana/loki:latest              # Canonical repo, frequently updated[7][15]
+    image: grafana/loki:latest # Canonical repo, frequently updated[7][15]
     command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
     environment:
       MINIO_ACCESS_KEY_ID: minioadmin
@@ -45,7 +44,7 @@ services:
       - minio_data:/data
 
   grafana:
-    image: grafana/grafana-oss:latest      # OSS or Enterprise as needed[9][17]
+    image: grafana/grafana-oss:latest # OSS or Enterprise as needed[9][17]
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning/datasources/:/etc/grafana/provisioning/datasources/:ro
@@ -60,7 +59,7 @@ services:
       - prometheus
 
   tempo:
-    image: grafana/tempo:latest            # Latest[10][18]
+    image: grafana/tempo:latest # Latest[10][18]
     command: ["-config.file=/etc/tempo/tempo.yaml"]
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
@@ -73,7 +72,7 @@ services:
       - ./opentelemetry/otelcol-config.yaml:/etc/otelcol-config.yaml
 
   prometheus:
-    image: prom/prometheus:latest         # Latest OSS[12][20]
+    image: prom/prometheus:latest # Latest OSS[12][20]
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
     volumes:
@@ -83,7 +82,7 @@ services:
       - "9090:9090"
 
   mimir:
-    image: grafana/mimir:latest           # Latest tagged[21]
+    image: grafana/mimir:latest # Latest tagged[21]
     command: ["-config.file=/etc/mimir/mimir.yaml"]
     volumes:
       - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml
@@ -122,9 +121,9 @@ services:
       - loki
       - prometheus
       - tempo
-      - mimir
       - vector
       - opentelemetry-collector
+      - mimir
 
   alpine-debug:
     image: alpine:latest
@@ -133,13 +132,14 @@ services:
     stdin_open: true
     profiles: ["debug"]
 
-
 volumes:
   nats_data:
   loki_data:
   minio_data:
   prometheus_data:
   tempo_data:
+    #  mimir-1_data:
+    #mimir-2_data:
+    # mimir-3_data:
   mimir_data:
   grafana_data:
-

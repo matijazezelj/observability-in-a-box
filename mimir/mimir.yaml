@@ -1,3 +1,7 @@
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: 9009
+
 blocks_storage:
   backend: s3
   s3:
@@ -16,3 +20,6 @@ ruler_storage:
     secret_access_key: minioadmin
     insecure: true
 
+ingester:
+  ring:
+    replication_factor: 1
